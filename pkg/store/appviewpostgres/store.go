@@ -8,9 +8,9 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 
-	"openbooking/pkg/appview"
-	"openbooking/pkg/lexicon"
-	"openbooking/pkg/protocol"
+	"github.com/restayway/openbooking/pkg/appview"
+	"github.com/restayway/openbooking/pkg/lexicon"
+	"github.com/restayway/openbooking/pkg/protocol"
 )
 
 type Store struct {

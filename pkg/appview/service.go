@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"openbooking/pkg/lexicon"
-	"openbooking/pkg/protocol"
+	"github.com/restayway/openbooking/pkg/lexicon"
+	"github.com/restayway/openbooking/pkg/protocol"
 )
 
 type ReservationView struct {

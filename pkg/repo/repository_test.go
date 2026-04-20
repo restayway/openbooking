@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"openbooking/pkg/did"
-	"openbooking/pkg/lexicon"
-	"openbooking/pkg/mst"
-	"openbooking/pkg/protocol"
+	"github.com/restayway/openbooking/pkg/did"
+	"github.com/restayway/openbooking/pkg/lexicon"
+	"github.com/restayway/openbooking/pkg/mst"
+	"github.com/restayway/openbooking/pkg/protocol"
 )
 
 type memorySigner struct {

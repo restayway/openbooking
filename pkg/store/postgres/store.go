@@ -10,8 +10,8 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 
-	"openbooking/pkg/pds"
-	"openbooking/pkg/protocol"
+	"github.com/restayway/openbooking/pkg/pds"
+	"github.com/restayway/openbooking/pkg/protocol"
 )
 
 type Store struct {

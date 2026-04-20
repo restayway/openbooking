@@ -8,10 +8,10 @@ import (
 	"fmt"
 	"time"
 
-	"openbooking/pkg/did"
-	"openbooking/pkg/lexicon"
-	"openbooking/pkg/protocol"
-	"openbooking/pkg/repo"
+	"github.com/restayway/openbooking/pkg/did"
+	"github.com/restayway/openbooking/pkg/lexicon"
+	"github.com/restayway/openbooking/pkg/protocol"
+	"github.com/restayway/openbooking/pkg/repo"
 )
 
 var ErrInvalidCommit = errors.New("invalid commit")

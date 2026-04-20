@@ -13,10 +13,10 @@ import (
 	"testing"
 	"time"
 
-	"openbooking/pkg/did"
-	"openbooking/pkg/lexicon"
-	"openbooking/pkg/privdata"
-	"openbooking/pkg/protocol"
+	"github.com/restayway/openbooking/pkg/did"
+	"github.com/restayway/openbooking/pkg/lexicon"
+	"github.com/restayway/openbooking/pkg/privdata"
+	"github.com/restayway/openbooking/pkg/protocol"
 )
 
 type memoryStore struct {

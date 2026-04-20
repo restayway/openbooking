@@ -12,11 +12,11 @@ import (
 	"sync"
 	"time"
 
-	"openbooking/pkg/did"
-	"openbooking/pkg/lexicon"
-	"openbooking/pkg/privdata"
-	"openbooking/pkg/protocol"
-	"openbooking/pkg/repo"
+	"github.com/restayway/openbooking/pkg/did"
+	"github.com/restayway/openbooking/pkg/lexicon"
+	"github.com/restayway/openbooking/pkg/privdata"
+	"github.com/restayway/openbooking/pkg/protocol"
+	"github.com/restayway/openbooking/pkg/repo"
 )
 
 var ErrNotFound = errors.New("not found")

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"sort"
 
-	"openbooking/pkg/protocol"
+	"github.com/restayway/openbooking/pkg/protocol"
 )
 
 type Leaf struct {

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"openbooking/pkg/protocol"
+	"github.com/restayway/openbooking/pkg/protocol"
 )
 
 func ValidateRecord(nsid string, raw json.RawMessage) error {

@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"openbooking/pkg/lexicon"
-	"openbooking/pkg/privdata"
+	"github.com/restayway/openbooking/pkg/lexicon"
+	"github.com/restayway/openbooking/pkg/privdata"
 )
 
 func NewHandler(service *Service) http.Handler {

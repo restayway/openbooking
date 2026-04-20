@@ -16,14 +16,14 @@ import (
 
 	"github.com/nats-io/nats.go"
 
-	"openbooking/pkg/did"
-	"openbooking/pkg/lexicon"
-	"openbooking/pkg/mesh"
-	"openbooking/pkg/openbao"
-	"openbooking/pkg/pds"
-	"openbooking/pkg/protocol"
-	"openbooking/pkg/runtimex"
-	postgresstore "openbooking/pkg/store/postgres"
+	"github.com/restayway/openbooking/pkg/did"
+	"github.com/restayway/openbooking/pkg/lexicon"
+	"github.com/restayway/openbooking/pkg/mesh"
+	"github.com/restayway/openbooking/pkg/openbao"
+	"github.com/restayway/openbooking/pkg/pds"
+	"github.com/restayway/openbooking/pkg/protocol"
+	"github.com/restayway/openbooking/pkg/runtimex"
+	postgresstore "github.com/restayway/openbooking/pkg/store/postgres"
 )
 
 func main() {

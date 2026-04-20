@@ -8,7 +8,7 @@ import (
 
 	"github.com/nats-io/nats.go"
 
-	"openbooking/pkg/protocol"
+	"github.com/restayway/openbooking/pkg/protocol"
 )
 
 type JetStreamMesh struct {

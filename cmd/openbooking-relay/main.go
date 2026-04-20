@@ -15,12 +15,12 @@ import (
 
 	"github.com/nats-io/nats.go"
 
-	"openbooking/pkg/did"
-	"openbooking/pkg/mesh"
-	"openbooking/pkg/protocol"
-	"openbooking/pkg/relay"
-	"openbooking/pkg/runtimex"
-	relaypostgres "openbooking/pkg/store/relaypostgres"
+	"github.com/restayway/openbooking/pkg/did"
+	"github.com/restayway/openbooking/pkg/mesh"
+	"github.com/restayway/openbooking/pkg/protocol"
+	"github.com/restayway/openbooking/pkg/relay"
+	"github.com/restayway/openbooking/pkg/runtimex"
+	relaypostgres "github.com/restayway/openbooking/pkg/store/relaypostgres"
 )
 
 func main() {

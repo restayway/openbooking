@@ -1,4 +1,4 @@
-module openbooking
+module github.com/restayway/openbooking
 
 go 1.24.0
 

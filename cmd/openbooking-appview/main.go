@@ -16,11 +16,11 @@ import (
 
 	"github.com/nats-io/nats.go"
 
-	"openbooking/pkg/appview"
-	"openbooking/pkg/mesh"
-	"openbooking/pkg/protocol"
-	"openbooking/pkg/runtimex"
-	appviewpostgres "openbooking/pkg/store/appviewpostgres"
+	"github.com/restayway/openbooking/pkg/appview"
+	"github.com/restayway/openbooking/pkg/mesh"
+	"github.com/restayway/openbooking/pkg/protocol"
+	"github.com/restayway/openbooking/pkg/runtimex"
+	appviewpostgres "github.com/restayway/openbooking/pkg/store/appviewpostgres"
 )
 
 func main() {

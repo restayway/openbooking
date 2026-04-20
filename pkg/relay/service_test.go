@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"openbooking/pkg/did"
-	"openbooking/pkg/protocol"
+	"github.com/restayway/openbooking/pkg/did"
+	"github.com/restayway/openbooking/pkg/protocol"
 )
 
 type memoryStore struct {

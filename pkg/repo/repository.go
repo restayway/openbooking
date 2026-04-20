@@ -6,8 +6,8 @@ import (
 	"sort"
 	"time"
 
-	"openbooking/pkg/mst"
-	"openbooking/pkg/protocol"
+	"github.com/restayway/openbooking/pkg/mst"
+	"github.com/restayway/openbooking/pkg/protocol"
 )
 
 type Signer interface {
