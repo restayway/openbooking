@@ -48,7 +48,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	service, err := relay.NewService(ctx, cfg.relayDID, store, relayPublisher{mesh: meshClient}, did.WebResolver{})
+	resolver := did.NewCachingResolver(did.DefaultMethodResolver(nil), 5*time.Minute, 30*time.Second)
+	service, err := relay.NewService(ctx, cfg.relayDID, store, relayPublisher{mesh: meshClient}, resolver)
 	if err != nil {
 		logger.Error("init relay service", "error", err)
 		os.Exit(1)

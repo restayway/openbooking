@@ -16,6 +16,7 @@ import (
 
 	"github.com/nats-io/nats.go"
 
+	"github.com/restayway/openbooking/pkg/auth"
 	"github.com/restayway/openbooking/pkg/did"
 	"github.com/restayway/openbooking/pkg/lexicon"
 	"github.com/restayway/openbooking/pkg/mesh"
@@ -58,20 +59,24 @@ func main() {
 	}
 	transitClient := openbao.TransitClient{Address: cfg.openbaoAddr, Token: cfg.openbaoToken}
 
+	resolver := did.NewCachingResolver(did.DefaultMethodResolver(nil), 5*time.Minute, 30*time.Second)
+
 	service, err := pds.NewService(ctx, pds.Config{
 		ActorDID:        cfg.actorDID,
 		Role:            pds.Role(cfg.actorRole),
 		KeyID:           cfg.openbaoKeyID,
 		EncryptionKeyID: cfg.openbaoPrivateKeyID,
-	}, store, jetstreamPublisher{mesh: meshClient}, openbaoSigner{client: transitClient}, openbaoCipher{client: transitClient}, did.WebResolver{})
+	}, store, jetstreamPublisher{mesh: meshClient}, openbaoSigner{client: transitClient}, openbaoCipher{client: transitClient}, resolver)
 	if err != nil {
 		logger.Error("initialize service", "error", err)
 		os.Exit(1)
 	}
 
+	authVerifier := auth.NewVerifier(resolver, time.Minute)
+
 	server := &http.Server{
 		Addr: cfg.httpAddr,
-		Handler: runtimex.ComposeHandler(pds.NewHandler(service), registry, func(snapshot runtimex.Snapshot) (bool, map[string]any) {
+		Handler: runtimex.ComposeHandler(pds.NewHandlerWithAuth(service, authVerifier), registry, func(snapshot runtimex.Snapshot) (bool, map[string]any) {
 			backlog := snapshot.Gauges["pds_outbox_backlog"]
 			depsOK := snapshot.Components["postgres"].Healthy && snapshot.Components["nats"].Healthy && snapshot.Components["openbao"].Healthy && snapshot.Components["did"].Healthy
 			ready := depsOK && snapshot.Components["outbox_worker"].Healthy && backlog <= cfg.readyOutboxThreshold
@@ -90,6 +95,13 @@ func main() {
 		})
 	}()
 
+	go func() {
+		<-ctx.Done()
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = server.Shutdown(shutdownCtx)
+	}()
+
 	if service.Config().Role == pds.RoleProvider {
 		go func() {
 			runtimex.RunRetriable(ctx, logger, registry, "intent_consumer", runtimex.RetryConfig{InitialBackoff: time.Second, MaxBackoff: 15 * time.Second}, func(ctx context.Context) error {
@@ -97,14 +109,7 @@ func main() {
 			})
 		}()
 	}
-	go monitorPDSDependencies(ctx, registry, store, meshClient, transitClient, cfg.openbaoKeyID, cfg.actorDID)
-
-	go func() {
-		<-ctx.Done()
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		_ = server.Shutdown(shutdownCtx)
-	}()
+	go monitorPDSDependencies(ctx, registry, store, meshClient, transitClient, cfg.openbaoKeyID, cfg.actorDID, resolver)
 
 	logger.Info("openbooking-pds listening", "addr", cfg.httpAddr, "actorDid", cfg.actorDID, "role", cfg.actorRole)
 	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -251,10 +256,9 @@ func sanitizeDID(did string) string {
 	return replacer.Replace(did)
 }
 
-func monitorPDSDependencies(ctx context.Context, registry *runtimex.Registry, store *postgresstore.Store, meshClient *mesh.JetStreamMesh, transitClient openbao.TransitClient, keyID, actorDID string) {
+func monitorPDSDependencies(ctx context.Context, registry *runtimex.Registry, store *postgresstore.Store, meshClient *mesh.JetStreamMesh, transitClient openbao.TransitClient, keyID, actorDID string, resolver did.Resolver) {
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
-	resolver := did.WebResolver{}
 	for {
 		checkCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 		err := store.Ping(checkCtx)

@@ -536,7 +536,6 @@ func (s *Service) RevokeConsentGrant(ctx context.Context, requesterDID, grantID 
 func (s *Service) applyCommit(ctx context.Context, ops []protocol.Operation, now time.Time) (protocol.Commit, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-
 	return s.applyCommitLocked(ctx, ops, now)
 }
 
@@ -555,6 +554,105 @@ func (s *Service) applyCommitLocked(ctx context.Context, ops []protocol.Operatio
 	}
 	s.head = &commit
 	return commit, nil
+}
+
+// CancelResult is the outcome of a reservation cancellation.
+type CancelResult struct {
+	Duplicate          bool
+	RepoCommit         protocol.Commit
+	CancelRecord       protocol.Record
+	AvailabilityRecord *protocol.Record
+}
+
+func (s *Service) ProcessCancel(ctx context.Context, requesterDID string, cancel lexicon.ReservationCancel, now time.Time) (CancelResult, error) {
+	if requesterDID != s.config.ActorDID {
+		return CancelResult{}, fmt.Errorf("owner authorization required")
+	}
+	if s.config.Role != RoleProvider {
+		return CancelResult{}, fmt.Errorf("cancel requires provider role")
+	}
+	raw, err := json.Marshal(cancel)
+	if err != nil {
+		return CancelResult{}, err
+	}
+	if err := lexicon.ValidateRecord(lexicon.NSIDReserveCancel, raw); err != nil {
+		return CancelResult{}, err
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// Check if already cancelled (idempotency / duplicate)
+	if existing, ok := s.lookupRecordLocked(lexicon.NSIDReserveCancel, cancel.BookingReference); ok {
+		return CancelResult{Duplicate: true, CancelRecord: existing}, nil
+	}
+
+	// Find the existing commit record
+	commitRecord, ok := s.lookupRecordLocked(lexicon.NSIDReserveCommit, cancel.BookingReference)
+	if !ok {
+		return CancelResult{}, fmt.Errorf("booking not found")
+	}
+	var commit lexicon.ReservationCommit
+	if err := json.Unmarshal([]byte(commitRecord.Value), &commit); err != nil {
+		return CancelResult{}, err
+	}
+
+	// Resolve offer to locate available inventory
+	offerID, err := protocol.ParseRecordURI(commit.OfferURI)
+	if err != nil {
+		return CancelResult{}, err
+	}
+	var offer lexicon.OfferQuote
+	offerRec, ok := s.lookupRecordLocked(offerID.NSID, offerID.RKey)
+	if ok {
+		_ = json.Unmarshal([]byte(offerRec.Value), &offer)
+	}
+
+	// Build cancel record
+	cancelRec, err := protocol.NewRecord(protocol.RecordID{
+		ActorDID: s.config.ActorDID,
+		NSID:     lexicon.NSIDReserveCancel,
+		RKey:     cancel.BookingReference,
+	}, lexicon.ReservationCancel{
+		BookingReference: cancel.BookingReference,
+		ReasonCode:       cancel.ReasonCode,
+		CancelledAt:      now.UTC(),
+	}, now)
+	if err != nil {
+		return CancelResult{}, err
+	}
+
+	var ops []protocol.Operation
+	ops = append(ops, protocol.Operation{Action: protocol.OperationPut, Record: cancelRec})
+
+	// Find and increment availability back
+	availabilityRecord, availability, found, err := s.findAvailabilityLocked(offer.ListingURI, offer.RatePlanURI, offer.InventoryVersion)
+	if err != nil {
+		return CancelResult{}, err
+	}
+
+	if found {
+		availability.AvailableUnits++
+		updatedAvailabilityRecord, err := protocol.NewRecord(availabilityRecord.ID, availability, now)
+		if err != nil {
+			return CancelResult{}, err
+		}
+		ops = append(ops, protocol.Operation{Action: protocol.OperationPut, Record: updatedAvailabilityRecord})
+	}
+
+	repoCommit, err := s.applyCommitLocked(ctx, ops, now)
+	if err != nil {
+		return CancelResult{}, err
+	}
+
+	result := CancelResult{
+		RepoCommit:   repoCommit,
+		CancelRecord: cancelRec,
+	}
+	if found {
+		result.AvailabilityRecord = &ops[len(ops)-1].Record
+	}
+	return result, nil
 }
 
 func (s *Service) lookupRecordLocked(nsid, rkey string) (protocol.Record, bool) {

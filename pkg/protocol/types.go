@@ -2,12 +2,13 @@ package protocol
 
 import (
 	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/gowebpki/jcs"
 )
 
 const (
@@ -87,11 +88,15 @@ func NewRecord(id RecordID, value any, createdAt time.Time) (Record, error) {
 		return Record{}, err
 	}
 	sum := sha256.Sum256(raw)
+	cid, err := EncodeSHA256CID(sum)
+	if err != nil {
+		return Record{}, fmt.Errorf("record hash: %w", err)
+	}
 	return Record{
 		ID:        id,
 		Value:     raw,
 		CreatedAt: createdAt.UTC(),
-		Hash:      hex.EncodeToString(sum[:]),
+		Hash:      cid,
 	}, nil
 }
 
@@ -177,9 +182,10 @@ func sanitizeDID(did string) string {
 }
 
 func canonicalJSON(v any) ([]byte, error) {
+	// canonicalJSON produces deterministic JSON (RFC 8785 / JCS) for cross-platform hash stability.
 	raw, err := json.Marshal(v)
 	if err != nil {
 		return nil, err
 	}
-	return raw, nil
+	return jcs.Transform(raw)
 }

@@ -9,11 +9,17 @@ import (
 	"strings"
 	"time"
 
+	"github.com/restayway/openbooking/pkg/auth"
 	"github.com/restayway/openbooking/pkg/lexicon"
 	"github.com/restayway/openbooking/pkg/privdata"
 )
 
 func NewHandler(service *Service) http.Handler {
+	return NewHandlerWithAuth(service, nil)
+}
+
+// NewHandlerWithAuth returns the PDS handler optionally wrapped with signature verification.
+func NewHandlerWithAuth(service *Service, verifier *auth.Verifier) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
@@ -115,6 +121,29 @@ func NewHandler(service *Service) http.Handler {
 			return
 		}
 		result, err := service.ProcessIntent(r.Context(), intent, time.Now().UTC())
+		if err != nil {
+			writeError(w, statusForError(err), err.Error())
+			return
+		}
+		status := http.StatusCreated
+		if result.Duplicate {
+			status = http.StatusOK
+		}
+		writeJSON(w, status, result)
+	})
+
+	mux.HandleFunc("POST /v1/cancels", func(w http.ResponseWriter, r *http.Request) {
+		requesterDID, err := requesterDIDFromHeader(r)
+		if err != nil {
+			writeError(w, http.StatusUnauthorized, err.Error())
+			return
+		}
+		var cancel lexicon.ReservationCancel
+		if err := decodeJSON(r, &cancel); err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		result, err := service.ProcessCancel(r.Context(), requesterDID, cancel, time.Now().UTC())
 		if err != nil {
 			writeError(w, statusForError(err), err.Error())
 			return
@@ -239,6 +268,9 @@ func NewHandler(service *Service) http.Handler {
 		writeJSON(w, http.StatusOK, map[string]string{"status": "revoked"})
 	})
 
+	if verifier != nil {
+		return verifier.Middleware(mux)
+	}
 	return mux
 }
 
@@ -326,6 +358,11 @@ func statusForError(err error) int {
 }
 
 func requesterDIDFromHeader(r *http.Request) (string, error) {
+	// Prefer authenticated DID from context when auth middleware is enabled.
+	if actor := auth.ActorDIDFromContext(r.Context()); actor != "" {
+		return actor, nil
+	}
+	// Fallback to plain header when auth middleware is not mounted.
 	value := strings.TrimSpace(r.Header.Get("X-OpenBooking-Actor-DID"))
 	if value == "" {
 		return "", errors.New("X-OpenBooking-Actor-DID header is required")

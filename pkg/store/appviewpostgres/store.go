@@ -95,6 +95,8 @@ func (s *Store) ApplyEnvelope(ctx context.Context, envelope protocol.RelayCommit
 			err = s.applyReservationCommit(ctx, tx, op, envelope.Commit.ActorDID)
 		case lexicon.NSIDReserveReject:
 			err = s.applyReservationReject(ctx, tx, op, envelope.Commit.ActorDID)
+		case lexicon.NSIDReserveCancel:
+			err = s.applyReservationCancel(ctx, tx, op, envelope.Commit.ActorDID)
 		}
 		if err != nil {
 			return err
@@ -155,6 +157,19 @@ func (s *Store) applyReservationReject(ctx context.Context, tx *sql.Tx, op proto
 		on conflict (provider_did, intent_id) do update
 		set status = excluded.status, offer_uri = excluded.offer_uri, reject_code = excluded.reject_code, updated_at = excluded.updated_at
 	`, providerDID, reject.IntentID, "rejected", reject.OfferURI, reject.Code, reject.RejectedAt)
+	return err
+}
+
+func (s *Store) applyReservationCancel(ctx context.Context, tx *sql.Tx, op protocol.Operation, providerDID string) error {
+	var cancel lexicon.ReservationCancel
+	if err := json.Unmarshal(op.Record.Value, &cancel); err != nil {
+		return err
+	}
+	_, err := tx.ExecContext(ctx, `
+		update appview_reservations
+		set status = 'cancelled', updated_at = $3
+		where provider_did = $1 and booking_reference = $2
+	`, providerDID, cancel.BookingReference, cancel.CancelledAt)
 	return err
 }
 

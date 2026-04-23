@@ -2,9 +2,9 @@ package mst
 
 import (
 	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/restayway/openbooking/pkg/protocol"
 )
@@ -74,6 +74,8 @@ func (t *Tree) Proof(key string) ([]ProofStep, error) {
 		if index%2 == 0 {
 			if index+1 < len(level) {
 				proof = append(proof, ProofStep{Position: "right", Hash: level[index+1]})
+			} else {
+				proof = append(proof, ProofStep{Position: "self"})
 			}
 		} else {
 			proof = append(proof, ProofStep{Position: "left", Hash: level[index-1]})
@@ -81,12 +83,11 @@ func (t *Tree) Proof(key string) ([]ProofStep, error) {
 
 		next := make([]string, 0, (len(level)+1)/2)
 		for i := 0; i < len(level); i += 2 {
-			left := level[i]
-			right := left
 			if i+1 < len(level) {
-				right = level[i+1]
+				next = append(next, hashStrings(level[i], level[i+1]))
+			} else {
+				next = append(next, hashStrings(level[i], level[i]))
 			}
-			next = append(next, hashStrings(left, right))
 		}
 		index /= 2
 		level = next
@@ -99,9 +100,11 @@ func VerifyProof(key, valueHash string, proof []ProofStep, root string) bool {
 	for _, step := range proof {
 		if step.Position == "left" {
 			current = hashStrings(step.Hash, current)
-			continue
+		} else if step.Position == "right" {
+			current = hashStrings(current, step.Hash)
+		} else if step.Position == "self" {
+			current = hashStrings(current, current)
 		}
-		current = hashStrings(current, step.Hash)
 	}
 	return current == root
 }
@@ -135,6 +138,10 @@ func merkleRoot(leaves []Leaf) string {
 }
 
 func hashStrings(parts ...string) string {
-	sum := sha256.Sum256([]byte(fmt.Sprint(parts)))
-	return hex.EncodeToString(sum[:])
+	sum := sha256.Sum256([]byte(strings.Join(parts, "")))
+	cid, err := protocol.EncodeSHA256CID(sum)
+	if err != nil {
+		panic(fmt.Sprintf("hashStrings: cid encode: %v", err))
+	}
+	return cid
 }
