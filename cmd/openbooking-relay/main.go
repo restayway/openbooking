@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"flag"
+	"github.com/restayway/openbooking/internal/envfile"
 	"log/slog"
 	"net/http"
 	"os"
@@ -101,7 +102,7 @@ func loadConfig() config {
 }
 
 func envOrDefault(key, fallback string) string {
-	if value := strings.TrimSpace(os.Getenv(key)); value != "" {
+	if value := strings.TrimSpace(envfile.Get(key)); value != "" {
 		return value
 	}
 	return fallback

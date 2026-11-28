@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"flag"
+	"github.com/restayway/openbooking/internal/envfile"
 	"log/slog"
 	"net/http"
 	"os"
@@ -167,7 +168,7 @@ func loadConfig() runtimeConfig {
 const natsDefaultURL = "nats://127.0.0.1:4222"
 
 func envOrDefault(key, fallback string) string {
-	value := strings.TrimSpace(os.Getenv(key))
+	value := strings.TrimSpace(envfile.Get(key))
 	if value == "" {
 		return fallback
 	}
@@ -175,7 +176,7 @@ func envOrDefault(key, fallback string) string {
 }
 
 func envOrDefaultInt64(key string, fallback int64) int64 {
-	value := strings.TrimSpace(os.Getenv(key))
+	value := strings.TrimSpace(envfile.Get(key))
 	if value == "" {
 		return fallback
 	}
